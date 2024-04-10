@@ -1,0 +1,59 @@
+
+module ALU_ROM_Wrapper(
+    input [1:0] Opcode,
+    input [15:0] Input_A,
+    input [15:0] Input_B,
+    output reg [15:0] Result
+);
+
+
+parameter IDLE = 2'b00;
+parameter LOAD = 2'b01;
+parameter STORE = 2'b10;
+
+reg [1:0] state;
+reg [15:0] Data_from_memory;
+
+
+alu16 ALU_instance (
+    .a(Input_A),
+    .b(Input_B),
+    .op(Opcode),
+    .y(Result)
+);
+
+reg [31:0] rd_data; 
+
+
+rom64 memory_instance (
+    .clk(clk),
+    .rst(rst),
+    .wrrd(state == LOAD || state == STORE),
+    .addr(Input_A), 
+    .wr_data(Input_B), 
+    .rd_data(rd_data)
+);
+
+always @(*) begin
+    case (state)
+        IDLE: begin
+            if (Opcode == 2'b01) 
+                state = LOAD;
+            else if (Opcode == 2'b10) 
+                state = STORE;
+            else
+                state = IDLE; 
+        end
+        LOAD: begin
+            Data_from_memory = rd_data; 
+            state = IDLE; 
+        end
+        STORE: begin
+            
+            state = IDLE; 
+        end
+        default: state = IDLE; 
+    endcase
+end
+
+endmodule
